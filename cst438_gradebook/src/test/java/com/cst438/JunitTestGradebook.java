@@ -240,6 +240,86 @@ public class JunitTestGradebook {
 		updatedag.setScore("88");
 		verify(assignmentGradeRepository, times(1)).save(updatedag);
 	}
+	
+	@Test
+	public void addAssignment() throws Exception {
+
+		MockHttpServletResponse response;
+
+		// mock database data
+
+		Course course = new Course();
+		course.setCourse_id(TEST_COURSE_ID);
+		course.setSemester(TEST_SEMESTER);
+		course.setYear(TEST_YEAR);
+		course.setInstructor(TEST_INSTRUCTOR_EMAIL);
+		course.setEnrollments(new java.util.ArrayList<Enrollment>());
+		course.setAssignments(new java.util.ArrayList<Assignment>());
+
+		Enrollment enrollment = new Enrollment();
+		enrollment.setCourse(course);
+		course.getEnrollments().add(enrollment);
+		enrollment.setId(TEST_COURSE_ID);
+		enrollment.setStudentEmail(TEST_STUDENT_EMAIL);
+		enrollment.setStudentName(TEST_STUDENT_NAME);
+
+		Assignment assignment = new Assignment();
+		assignment.setCourse(course);
+		course.getAssignments().add(assignment);
+		// set dueDate to 1 week before now.
+		assignment.setDueDate(new java.sql.Date(System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000));
+		assignment.setId(1);
+		assignment.setName("Assignment 1");
+		assignment.setNeedsGrading(1);
+
+		AssignmentGrade ag = new AssignmentGrade();
+		ag.setAssignment(assignment);
+		ag.setId(1);
+		ag.setScore("");
+		ag.setStudentEnrollment(enrollment);
+
+		// given -- stubs for database repositories that return test data
+		given(assignmentRepository.findById(1)).willReturn(assignment);
+		given(assignmentGradeRepository.findByAssignmentIdAndStudentEmail(1, TEST_STUDENT_EMAIL)).willReturn(null);
+		given(assignmentGradeRepository.save(any())).willReturn(ag);
+
+		// end of mock data
+
+		// then do an http get request for assignment 1
+		response = mvc.perform(MockMvcRequestBuilders.post("/assignment?name=quiz1&dueDate=2021-09-06&courseId:999001").accept(MediaType.APPLICATION_JSON)).andReturn().getResponse();
+
+		// verify return data with entry for one student without no score
+		assertEquals(200, response.getStatus());
+
+		// verify that a save was called on repository
+		verify(assignmentGradeRepository, times(1)).save(any()); // ???
+
+		// verify that returned data has non zero primary key
+		GradebookDTO result = fromJsonString(response.getContentAsString(), GradebookDTO.class);
+		// assignment id is 1
+		assertEquals(1, result.assignmentId);
+		// there is one student list
+		assertEquals(1, result.grades.size());
+		assertEquals(TEST_STUDENT_NAME, result.grades.get(0).name);
+		assertEquals("", result.grades.get(0).grade);
+
+		// change grade to score = 80
+		result.grades.get(0).grade = "80";
+
+		given(assignmentGradeRepository.findById(1)).willReturn(ag);
+
+		// send updates to server
+		response = mvc
+				.perform(MockMvcRequestBuilders.put("/gradebook/1").accept(MediaType.APPLICATION_JSON)
+						.content(asJsonString(result)).contentType(MediaType.APPLICATION_JSON))
+				.andReturn().getResponse();
+
+		// verify that return status = OK (value 200)
+		assertEquals(200, response.getStatus());
+
+		// verify that repository saveAll method was called
+		verify(assignmentGradeRepository, times(1)).save(any());
+	}
 
 	private static String asJsonString(final Object obj) {
 		try {

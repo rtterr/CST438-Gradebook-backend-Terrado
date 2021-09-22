@@ -2,6 +2,7 @@ package com.cst438.controllers;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.sql.Date;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -57,6 +58,7 @@ public class GradeBookController {
 		return result;
 	}
 	
+	
 	@GetMapping("/gradebook/{id}")
 	public GradebookDTO getGradebook(@PathVariable("id") Integer assignmentId  ) {
 		
@@ -87,6 +89,28 @@ public class GradeBookController {
 			gradebook.grades.add(grade);
 		}
 		return gradebook;
+	}
+	
+	@PostMapping("/gradebook")
+	@Transactional
+	public boolean addAssignment( @RequestBody AssignmentListDTO.AssignmentDTO assignmentDTO  ) { 
+		
+		Course course  = courseRepository.findByCourse_id(assignmentDTO.courseId);
+        System.out.println(assignmentDTO.courseId);
+        System.out.println("Create assignment for gradebook " + assignmentDTO.assignmentName + " " + assignmentDTO.dueDate);
+		if (course!=null) {
+			
+			Assignment assignment = new Assignment();
+			assignment.setName(assignmentDTO.assignmentName);
+			assignment.setCourse(course);
+			assignment.setDueDate(Date.valueOf(assignmentDTO.dueDate));
+			assignmentRepository.save(assignment);
+			
+			return true;
+		} else {
+			throw  new ResponseStatusException( HttpStatus.BAD_REQUEST, "Course_id invalid. "+assignmentDTO.courseId);
+		}
+		
 	}
 	
 	@PostMapping("/course/{course_id}/finalgrades")

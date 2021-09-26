@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -91,9 +92,10 @@ public class GradeBookController {
 		return gradebook;
 	}
 	
+	//Add assignment
 	@PostMapping("/gradebook")
 	@Transactional
-	public boolean addAssignment( @RequestBody AssignmentListDTO.AssignmentDTO assignmentDTO  ) { 
+	public AssignmentListDTO.AssignmentDTO addAssignment( @RequestBody AssignmentListDTO.AssignmentDTO assignmentDTO  ) { 
 		
 		Course course  = courseRepository.findByCourse_id(assignmentDTO.courseId);
         System.out.println(assignmentDTO.courseId);
@@ -106,12 +108,41 @@ public class GradeBookController {
 			assignment.setDueDate(Date.valueOf(assignmentDTO.dueDate));
 			assignmentRepository.save(assignment);
 			
-			return true;
+			return assignmentDTO;
 		} else {
 			throw  new ResponseStatusException( HttpStatus.BAD_REQUEST, "Course_id invalid. "+assignmentDTO.courseId);
 		}
 		
 	}
+	//Change assignment title
+    @PutMapping("/assignment/{assignment_id}")
+    @Transactional
+    public AssignmentListDTO.AssignmentDTO updateAssignment(@RequestBody AssignmentListDTO.AssignmentDTO assignment, @PathVariable int assignment_id) {
+    	Assignment editedAssignment = assignmentRepository.findById(assignment_id);
+    	if (editedAssignment!= null) {
+    		editedAssignment.setName(assignment.assignmentName);
+        return assignment;
+    	} else {
+			throw  new ResponseStatusException( HttpStatus.BAD_REQUEST, "Assignment_id invalid. "+assignment.assignmentId);
+		}
+    }
+    
+	//Delete assignment
+    @DeleteMapping("/assignment/{assignment_id}")
+    @Transactional
+    public Assignment deleteAssignment(@PathVariable int assignment_id) {
+    	Assignment assignment = assignmentRepository.findById(assignment_id);
+    	if (assignment == null) {
+    		throw  new ResponseStatusException( HttpStatus.BAD_REQUEST, "Assignment_id invalid.");
+    	}
+    	if (assignment.getNeedsGrading() == 0) {
+    		assignmentRepository.delete(assignment);
+        return assignment;
+    	} else {
+			throw  new ResponseStatusException( HttpStatus.BAD_REQUEST, "Grade for assignment already exists.");
+		}
+    }
+	
 	
 	@PostMapping("/course/{course_id}/finalgrades")
 	@Transactional

@@ -327,17 +327,15 @@ public class JunitTestGradebook {
 		
 		// given -- stubs for database repositories that return test data
 		given(assignmentRepository.findById(1)).willReturn(assignment);
-		given(assignmentGradeRepository.findByAssignmentIdAndStudentEmail(1, TEST_STUDENT_EMAIL)).willReturn(null);
-		given(courseRepository.findByCourse_id(TEST_COURSE_ID)).willReturn(course);
 		given(assignmentGradeRepository.save(any())).willReturn(ag);
 		
 		// end of mock data
 
-		// then do an http post request
+		// then do an http delete request
 		response = mvc.perform(MockMvcRequestBuilders.delete("/assignment/1").accept(MediaType.APPLICATION_JSON)).andReturn().getResponse();
 
 		assertEquals(400, response.getStatus());
-		verify(assignmentRepository, times(1)).delete(any());
+		
 	}
 	
 	@Test
@@ -361,26 +359,59 @@ public class JunitTestGradebook {
 		enrollment.setId(TEST_COURSE_ID);
 		enrollment.setStudentEmail(TEST_STUDENT_EMAIL);
 		enrollment.setStudentName(TEST_STUDENT_NAME);
-
-		AssignmentListDTO.AssignmentDTO assignment = new AssignmentListDTO.AssignmentDTO();
-		assignment.assignmentId = TEST_ASSIGNMENT_ID ;
-		assignment.courseId = TEST_COURSE_ID;
-		assignment.dueDate = TEST_ASSIGNMENT_DUEDATE;
-		assignment.assignmentName = TEST_ASSIGNMENT_NAME;
-		assignment.courseTitle =  course.getTitle();
 		
+        Assignment assignment = new Assignment();
+        assignment.setCourse(course);
+        course.getAssignments().add(assignment);
+        // set dueDate to 1 week before now.
+        assignment.setDueDate(new java.sql.Date(System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000));
+        assignment.setId(1);
+        assignment.setName("Assignment 1");
+        assignment.setNeedsGrading(1);
+        
+		AssignmentGrade ag = new AssignmentGrade();
+		ag.setAssignment(assignment);
+		ag.setId(1);
+		ag.setScore("");
+		ag.setStudentEnrollment(enrollment);
+
+		//AssignmentListDTO.AssignmentDTO content = new AssignmentListDTO.AssignmentDTO();
+		//content.courseId = TEST_COURSE_ID;
+		//content.dueDate = TEST_ASSIGNMENT_DUEDATE;
+		//content.assignmentName = "new name";
 		
 		// given -- stubs for database repositories that return test data
+		given(assignmentRepository.findById(1)).willReturn(assignment);
 		given(assignmentGradeRepository.findByAssignmentIdAndStudentEmail(1, TEST_STUDENT_EMAIL)).willReturn(null);
-		given(courseRepository.findByCourse_id(TEST_COURSE_ID)).willReturn(course);
+		given(assignmentGradeRepository.save(any())).willReturn(ag);
 		
 		// end of mock data
+		
+		// then do an http get request for assignment 1
+		response = mvc.perform(MockMvcRequestBuilders.get("/gradebook/1").accept(MediaType.APPLICATION_JSON))
+				.andReturn().getResponse();
 
-		// then do an http post request
-		response = mvc.perform(MockMvcRequestBuilders.put("/assignment/1").accept(MediaType.APPLICATION_JSON).content(asJsonString(assignment)).contentType(MediaType.APPLICATION_JSON)).andReturn().getResponse();
-
+		// verify return data
 		assertEquals(200, response.getStatus());
-		verify(assignmentRepository, times(1)).save(any());
+		
+		//set returned data
+		GradebookDTO result = fromJsonString(response.getContentAsString(), GradebookDTO.class);
+		
+		AssignmentListDTO.AssignmentDTO content = new AssignmentListDTO.AssignmentDTO();
+		content.courseId = TEST_COURSE_ID;
+		content.dueDate = TEST_ASSIGNMENT_DUEDATE;
+		content.assignmentId = result.assignmentId;
+		content.assignmentName = "updated title";
+		
+		
+		// then do an http put request
+		//response = mvc.perform(MockMvcRequestBuilders.put("/assignment/1").accept(MediaType.APPLICATION_JSON).content(asJsonString(content)).contentType(MediaType.APPLICATION_JSON)).andReturn().getResponse();
+		response = mvc.perform(MockMvcRequestBuilders.put("/assignment/1").accept(MediaType.APPLICATION_JSON).content(asJsonString(content)).contentType(MediaType.APPLICATION_JSON)).andReturn().getResponse();
+		
+		AssignmentListDTO.AssignmentDTO resultUpdated = fromJsonString(response.getContentAsString(), AssignmentListDTO.AssignmentDTO.class);
+	
+		assertEquals(200, response.getStatus());
+		assertEquals("updated title", resultUpdated.assignmentName);
 	}
 	
 

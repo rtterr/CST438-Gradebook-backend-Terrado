@@ -32,7 +32,21 @@ public class EnrollmentController {
 	public EnrollmentDTO addEnrollment(@RequestBody EnrollmentDTO enrollmentDTO) {
 		
 		//TODO  complete this method in homework 4
+		//this class receives a request to create an enrollment record for
+		//a student in a course using an EnrollmentDTO object as the request body.
 		
+		//find course ID
+		Course course = courseRepository.findByCourse_id(enrollmentDTO.course_id);
+		
+		//new enrollment for student in course
+		Enrollment enrollment = new Enrollment();
+		//set course ID and student name+email
+		enrollment.setCourse(course);
+		enrollment.setStudentName(enrollmentDTO.studentName);
+		enrollment.setStudentEmail(enrollmentDTO.studentEmail);
+		
+		//save to repository
+		enrollmentRepository.save(enrollment);
 		return null;
 		
 	}

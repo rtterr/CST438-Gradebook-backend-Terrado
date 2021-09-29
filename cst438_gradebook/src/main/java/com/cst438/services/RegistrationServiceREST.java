@@ -22,6 +22,6 @@ public class RegistrationServiceREST extends RegistrationService {
 		
 		//TODO  complete this method in homework 4
 		//class sends final grades for all students in a course
-		restTemplate.postForEntity("localhost:8080/course", courseDTO, CourseDTOG.class);
+		restTemplate.postForEntity(registration_url + "/course/" + courseDTO.course_id, courseDTO, CourseDTOG.class);
 	}
 }

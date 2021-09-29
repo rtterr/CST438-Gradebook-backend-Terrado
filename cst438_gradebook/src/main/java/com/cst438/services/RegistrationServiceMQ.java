@@ -15,6 +15,7 @@ import com.cst438.domain.EnrollmentDTO;
 import com.cst438.domain.EnrollmentRepository;
 
 
+
 public class RegistrationServiceMQ extends RegistrationService {
 
 	@Autowired
@@ -43,8 +44,18 @@ public class RegistrationServiceMQ extends RegistrationService {
 	@RabbitListener(queues = "gradebook-queue")
 	@Transactional
 	public void receive(EnrollmentDTO enrollmentDTO) {
+		//homework 4
+		Course course = courseRepository.findByCourse_id(enrollmentDTO.course_id);
 		
-		//TODO  complete this method in homework 4
+		//new enrollment for student in course
+		Enrollment enrollment = new Enrollment();
+		//set course ID and student name+email
+		enrollment.setCourse(course);
+		enrollment.setStudentName(enrollmentDTO.studentName);
+		enrollment.setStudentEmail(enrollmentDTO.studentEmail);
+		
+		//save to repository
+		enrollmentRepository.save(enrollment);
 		
 	}
 
@@ -52,8 +63,8 @@ public class RegistrationServiceMQ extends RegistrationService {
 	@Override
 	public void sendFinalGrades(int course_id, CourseDTOG courseDTO) {
 		 
-		//TODO  complete this method in homework 4
-		
+		//homework 4
+		 this.rabbitTemplate.convertAndSend(registrationQueue.getName(), courseDTO);
 	}
 
 }

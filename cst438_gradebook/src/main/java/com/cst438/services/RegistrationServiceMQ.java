@@ -64,7 +64,7 @@ public class RegistrationServiceMQ extends RegistrationService {
 	public void sendFinalGrades(int course_id, CourseDTOG courseDTO) {
 		 
 		//homework 4
-		 this.rabbitTemplate.convertAndSend(registrationQueue.getName(), courseDTO);
+		this.rabbitTemplate.convertAndSend(registrationQueue.getName(), courseDTO);
 	}
 
 }
